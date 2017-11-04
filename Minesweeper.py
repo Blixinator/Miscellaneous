@@ -40,9 +40,7 @@ class App:
 
 	def initUI(self):
 		f = Frame(self.master, height=400, width=400)
-		f.config(bg='#F5F5FF')
 		menubar = Menu(self.master)
-		menubar.config(bg='#00FF00')
 		self.master.config(menu=menubar)
 		fileMenu = Menu(menubar)
 		fileMenu.add_command(label="Exit", command=self.onExit)
@@ -50,7 +48,6 @@ class App:
 
 		self.button_frame = Frame(f)
 		# self.button_frame.place(in_=f, anchor="c", relx=.5, rely=.5)
-		# self.button_frame.grid(row=1, column=1, columnspan=2)
 		self.button_frame.grid(row=1, column=1)
 
 		# self.button_frame = Frame(f)
@@ -88,13 +85,6 @@ class App:
 		# l.bind("<ButtonRelease-1>", lambda x: self.set("left", True))
 		# l.bind("<1>", lambda x: self.mouse_down=True)
 
-
-		# row_entry_label = Label(f, text = "Rows: ", bg='red')
-		# row_entry_label.grid(row=0, column=0)
-
-		self.entry_frame = Frame(f)
-		self.entry_frame.config(bg='red')
-		self.entry_frame.grid(row=0)
 
 
 		self.row_entry = Entry(f)
@@ -206,19 +196,18 @@ class App:
 		for r in xrange(0, rows):
 			for c in xrange(0, columns):
 
-				b = Button(self.button_frame, text = "", width=2, command=lambda r=r, c=c: self.button_click(r,c))
-				# b = Button(self.button_frame, text = "", width=2)
+				# b = Button(self.button_frame, text = "", width=2, command=lambda r=r, c=c: self.button_click(r,c))
+				b = Button(self.button_frame, text = "", width=2)
 				# b = Button(self.button_frame, text=(self.map[r][c] if self.map[r][c]!=0 else " "), width=2, command=lambda r=r, c=c: self.button_click(r,c))
 				
-				# b = Button(self.button_frame, text = "", width=2, command=lambda r=r, c=c: self.button_click(r,c))
-				# b.bind("<Button-1>", lambda event, r=r, c=c: self.button_click2(event, 'left', True,r,c))
-				# b.bind("<Button-3>", lambda event, r=r, c=c: self.button_click2(event, 'right', True,r,c))
-				# b.bind("<ButtonRelease-1>", lambda event, r=r, c=c: self.button_click2(event, 'left', False,r,c))
-				# b.bind("<ButtonRelease-3>", lambda event, r=r, c=c: self.button_click2(event, 'right', False,r,c))
 
-				b.bind("<Button-3>", lambda event, r=r, c=c: self.set_flag(event,r,c))
+				b.bind("<Button-1>", lambda event, r=r, c=c: self.button_click2(event, 'left', True,r,c))
+				b.bind("<Button-3>", lambda event, r=r, c=c: self.button_click2(event, 'right', True,r,c))
+				b.bind("<ButtonRelease-1>", lambda event, r=r, c=c: self.button_click2(event, 'left', False,r,c))
+				b.bind("<ButtonRelease-3>", lambda event, r=r, c=c: self.button_click2(event, 'right', False,r,c))
 
-				# b.config(text=(self.map[r][c] if self.map[r][c]!=0 else " "))
+				# b.bind("<Button-3>", lambda event, r=r, c=c: self.set_flag(event,r,c))
+
 				b.config(font = self.bold_font)
 				b.grid(row=r, column=c)
 				
@@ -226,19 +215,17 @@ class App:
 
 
 	def button_click(self, r, c):
-		# print r,c
 
-		# if self.revealed_map[r][c]==True:
+		# if self.buttons[r][c]["relief"]=="sunken":
 		# 	return
 
-		# if self.revealed_map[r][c]==True:
-		# 	return
+		self.buttons[r][c]["relief"]="sunken"
 
 		if self.started == False:
 			self.populate(rows=self.rows, columns=self.columns, bombs=self.bombs, click_position=(r,c))
 			self.started = True
 
-				# self.buttons[r][c].config(state="disabled", relief=SUNKEN, text=(self.map[r][c] if self.map[r][c]!=0 else " "))
+		# self.buttons[r][c].config(state="disabled", relief=SUNKEN, text=(self.map[r][c] if self.map[r][c]!=0 else " "))
 		self.buttons[r][c].config(relief=SUNKEN, text=(self.map[r][c] if self.map[r][c]!=0 else " "))
 		self.revealed+=1
 		self.revealed_map[r][c] = True
@@ -266,11 +253,6 @@ class App:
 						continue
 					# try:
 					if self.map[r+i][c+j]!="*" and self.buttons[r+i][c+j]['relief']=='raised':
-
-						"""If an adjacent corner is a blank, don't reveal it"""
-						# if self.map[r+i][c+j]==0 and (i!=0 and j!=0):
-						# 	continue
-
 						self.button_click(r+i, c+j)
 						# if self.map[r+i][c+j] not in ('*', 0):
 						# 	self.buttons[r+i][c+j].config(relief=SUNKEN, text=(self.map[r+i][c+j] if self.map[r+i][c+j]!=0 else " "))
@@ -299,9 +281,9 @@ class App:
 				print 'both down'
 			elif self.left_mouse_down:
 				print 'left down'
+				self.buttons[r][c]["relief"]="sunken"
 				self.button_click(r,c)
-				# self.buttons[r][c].config(relief=SUNKEN)
-
+				# self.buttons[r][c]["relief"]="flat"
 			elif self.right_mouse_down:
 				print 'right down'
 				self.set_flag2(r,c)
@@ -309,15 +291,16 @@ class App:
 			self.left_mouse_down = False
 			self.right_mouse_down = False
 
-		# print r, c
+		print r, c
 
 
 	def test(self, event):
 		print "clicked at", event.x, event.y
 
 	def set_flag(self, event, r, c):
-		if self.buttons[r][c]["relief"]=="sunken" or self.started==False:
+		if self.buttons[r][c]["relief"]=="sunken":
 			return
+ 
 
 		if self.buttons[r][c]['state']=="normal":
 			self.buttons[r][c].config(state="disabled", text="F")
@@ -349,6 +332,10 @@ class App:
 		elif self.buttons[r][c]['state']=="disabled" and self.buttons[r][c]['text']=="F":
 			self.buttons[r][c].config(state="normal", text="")
 			self.flags-=1
+
+
+	
+
 
 root = Tk()
 root.title("Minesweeper")
