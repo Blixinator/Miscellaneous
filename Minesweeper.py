@@ -63,10 +63,10 @@ class App:
 		# l.bind("<ButtonRelease-1>", self.set('left', False))
 		# l.bind("<ButtonRelease-3>", self.set('right', False))
 
-		l.bind("<Button-1>", lambda x: self.left_right_click('left', True))
-		l.bind("<Button-3>", lambda x: self.left_right_click('right', True))
-		l.bind("<ButtonRelease-1>", lambda x: self.left_right_click('left', False))
-		l.bind("<ButtonRelease-3>", lambda x: self.left_right_click('right', False))
+		# l.bind("<Button-1>", lambda x: self.left_right_click('left', True))
+		# l.bind("<Button-3>", lambda x: self.left_right_click('right', True))
+		# l.bind("<ButtonRelease-1>", lambda x: self.left_right_click('left', False))
+		# l.bind("<ButtonRelease-3>", lambda x: self.left_right_click('right', False))
 
 		# l.bind("<Button-1>", self.onAnyofTwoPressed)
 		# l.bind("<Button-3>", self.onAnyofTwoPressed)
@@ -131,32 +131,6 @@ class App:
 
 
 
-	def left_right_click(self, mouse, state):
-		if state == True:
-			if self.left_mouse_down and self.left_mouse_down <= time.time():
-				self.left_mouse_down = False
-			if self.right_mouse_down and self.right_mouse_down <= time.time():
-				self.right_mouse_down = False
-
-			if mouse == 'left' and state==True:
-				self.left_mouse_down = time.time() + 500
-			if mouse == 'right' and state==True:
-				self.right_mouse_down = time.time() + 500
-		if state==False:
-	
-			if self.left_mouse_down and self.right_mouse_down:
-				print 'both down'
-			elif self.left_mouse_down:
-				print 'left down'
-			elif self.right_mouse_down:
-				print 'right down'
-
-			self.left_mouse_down = False
-			self.right_mouse_down = False
-
-	
-
-
 
 
 	def reset(self):
@@ -197,7 +171,7 @@ class App:
 			for c in xrange(0, columns):
 
 				# b = Button(self.button_frame, text = "", width=2, command=lambda r=r, c=c: self.button_click(r,c))
-				b = Button(self.button_frame, text = "", width=2)
+				b = Button(self.button_frame, text = "", width=2, command = lambda r=r, c=c: self.sink(r,c))
 				# b = Button(self.button_frame, text=(self.map[r][c] if self.map[r][c]!=0 else " "), width=2, command=lambda r=r, c=c: self.button_click(r,c))
 				
 
@@ -205,6 +179,7 @@ class App:
 				b.bind("<Button-3>", lambda event, r=r, c=c: self.button_click2(event, 'right', True,r,c))
 				b.bind("<ButtonRelease-1>", lambda event, r=r, c=c: self.button_click2(event, 'left', False,r,c))
 				b.bind("<ButtonRelease-3>", lambda event, r=r, c=c: self.button_click2(event, 'right', False,r,c))
+				# b.bind("<Button-1>", lambda event: self.sunken(event))
 
 				# b.bind("<Button-3>", lambda event, r=r, c=c: self.set_flag(event,r,c))
 
@@ -213,20 +188,36 @@ class App:
 				
 				self.buttons[r].append(b)
 
+	def blah(self):
+		""
+	def sunken(self, event):
+		button = event.widget # detecte le bouton sur lequel on clique
+		button['relief'] = 'sunken' # changement de relief
+
+	def sink(self, r, c):
+		self.buttons[r][c]['relief'] = 'sunken'
 
 	def button_click(self, r, c):
 
 		# if self.buttons[r][c]["relief"]=="sunken":
 		# 	return
+		# if self.buttons[r][c]["relief"]!="sunken":
+		# 	self.button_click(r,c)
 
-		self.buttons[r][c]["relief"]="sunken"
+		# self.buttons[r][c]["relief"]="sunken"
+		self.sink(r,c)
 
 		if self.started == False:
 			self.populate(rows=self.rows, columns=self.columns, bombs=self.bombs, click_position=(r,c))
 			self.started = True
 
 		# self.buttons[r][c].config(state="disabled", relief=SUNKEN, text=(self.map[r][c] if self.map[r][c]!=0 else " "))
-		self.buttons[r][c].config(relief=SUNKEN, text=(self.map[r][c] if self.map[r][c]!=0 else " "))
+		self.buttons[r][c].config( text=(self.map[r][c] if self.map[r][c]!=0 else " "))
+
+		print self.buttons[r][c]['relief']
+		while self.buttons[r][c]['relief']!='sunken':
+			print "!"
+			self.buttons[r][c]['relief']='sunken'
 		self.revealed+=1
 		self.revealed_map[r][c] = True
 
@@ -252,7 +243,8 @@ class App:
 					if (i==0 and j==0) or not(0<=r+i<self.rows) or not(0<=c+j<self.columns):
 						continue
 					# try:
-					if self.map[r+i][c+j]!="*" and self.buttons[r+i][c+j]['relief']=='raised':
+					# if self.map[r+i][c+j]!="*" and self.buttons[r+i][c+j]['relief']=='raised':
+					if self.map[r+i][c+j]!="*" and self.revealed_map[r+i][c+j] == False:
 						self.button_click(r+i, c+j)
 						# if self.map[r+i][c+j] not in ('*', 0):
 						# 	self.buttons[r+i][c+j].config(relief=SUNKEN, text=(self.map[r+i][c+j] if self.map[r+i][c+j]!=0 else " "))
@@ -279,9 +271,10 @@ class App:
 	
 			if self.left_mouse_down and self.right_mouse_down:
 				print 'both down'
+				# self.buttons[r][c]["relief"]="sunken"
 			elif self.left_mouse_down:
 				print 'left down'
-				self.buttons[r][c]["relief"]="sunken"
+				# self.buttons[r][c]["relief"]="sunken"
 				self.button_click(r,c)
 				# self.buttons[r][c]["relief"]="flat"
 			elif self.right_mouse_down:
