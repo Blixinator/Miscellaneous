@@ -136,7 +136,7 @@ class App:
 				# b = Button(self.button_frame, text = "", width=2)
 
 				"""Add the map to the top of all the buttons"""
-				b.config(text=(self.map[r][c] if self.map[r][c]!=0 else " "))
+				# b.config(text=(self.map[r][c] if self.map[r][c]!=0 else " "))
 
 				"""Add bindings for left, right, and both mouse button clicks"""
 				b.bind("<Button-1>", lambda event, r=r, c=c: self.button_click2(event, 'left', True,r,c))
@@ -231,7 +231,7 @@ class App:
 			for e in row:
 				e.grab_release()
 		if self.started == False:
-			# self.populate(rows=self.rows, columns=self.columns, bombs=self.bombs, click_position=(r,c))
+			self.populate(rows=self.rows, columns=self.columns, bombs=self.bombs, click_position=(r,c))
 			self.started = True
 
 		if self.revealed_map[r][c]==True:
@@ -286,11 +286,13 @@ class App:
 			# print self.left_mouse_down, self.right_mouse_down
 
 		if state==False:
+			self.buttons[r][c].grab_release()
 			# for r in xrange(0, self.rows):
 			# 	for c in xrange(0, self.columns):
-			# 		if self.revealed_map[r][c]==False:
-			# 			self.buttons[r][c]['relief']='raised'
-			
+			# 		if self.revealed_map[r][c]==True:
+			# 			# self.buttons[r][c]['relief']='raised'
+			# 			self.buttons[r][c].grab_release()
+
 			# if not(0<=event.x<=self.buttons[r][c].winfo_width()) or not(0<=event.y<=self.buttons[r][c].winfo_height()):
 			# 	# print self.master.winfo_containing(event.x_root, event.y_root)
 
@@ -332,6 +334,8 @@ class App:
 				print 'right down'
 				if self.revealed_map[r][c]==False:
 					self.set_flag(r,c)
+				else:
+					print r,c,"!"
 
 			self.left_mouse_down = False
 			self.right_mouse_down = False
