@@ -24,9 +24,19 @@ class App:
 	def __init__(self, master):
 		self.master = master
 
+		self.cheat_mode = False
+
 		self.rows = 10
 		self.columns = 10
 		self.bombs = 15
+
+		self.difficulties = {\
+							"easy":[],\
+							"intermediate":[],\
+							"expert":[],\
+							"custom":[],\
+		}
+
 
 		self.colors = {1:"blue", 2:"green", 3:"red", 4:"purple", 5:"maroon", 6:"turquoise", 7:"black", 8:"gray"}
 
@@ -58,8 +68,8 @@ class App:
 		self.button_frame = Frame(f)
 		self.button_frame.grid(row=1, column=1)
 
-		self.master.bind("<KeyPress>", lambda event: self.shift_key(event, True))
-		self.master.bind("<KeyRelease>", lambda event: self.shift_key(event, False))
+		# self.master.bind("<KeyPress>", lambda event: self.shift_key(event, True))
+		# self.master.bind("<KeyRelease>", lambda event: self.shift_key(event, False))
 
 		self.bold_font = tkfont.Font(family="Helvetica", size=12, weight="bold")
 
@@ -84,11 +94,11 @@ class App:
 		f.pack_propagate(0)
 		f.pack(fill=BOTH)
 
-	def shift_key(self, event, state):
-		if event.keysym=="Shift_L":
-			self.shift_l_down = state
-			if state==False:
-				""
+	# def shift_key(self, event, state):
+	# 	if event.keysym=="Shift_L":
+	# 		self.shift_l_down = state
+	# 		if state==False:
+	# 			""
 
 	def onExit(self):
 		quit()
@@ -136,7 +146,8 @@ class App:
 				# b = Button(self.button_frame, text = "", width=2)
 
 				"""Add the map to the top of all the buttons"""
-				# b.config(text=(self.map[r][c] if self.map[r][c]!=0 else " "))
+				if self.cheat_mode == True:
+					b.config(text=(self.map[r][c] if self.map[r][c]!=0 else " "))
 
 				"""Add bindings for left, right, and both mouse button clicks"""
 				b.bind("<Button-1>", lambda event, r=r, c=c: self.button_click2(event, 'left', True,r,c))
@@ -147,7 +158,7 @@ class App:
 				# b.bind("<Enter>", lambda event, r=r, c=c: self.test(event, r,c))
 				# b.bind("<Leave>", lambda event, r=r, c=c: self.test(event, r,c))
 
-				b.bind("<Enter>", lambda event, r=r, c=c: self.hover_enter(event, r, c))
+				# b.bind("<Enter>", lambda event, r=r, c=c: self.hover_enter(event, r, c))
 				b.bind("<Leave>", lambda event, r=r, c=c: self.hover_leave(event, r, c))
 
 				# b.bind("<Enter>", self.blah(r,c))
@@ -165,7 +176,7 @@ class App:
 		widget = self.button_frame.winfo_containing(event.x_root, event.y_root)
 		r,c = self.find_button(widget)
 
-		if self.left_mouse_down!=False and self.right_mouse_down!=False:
+		if self.left_mouse_down!=False and self.right_mouse_down!=False and self.buttons[r][c]['state']!='disabled':
 			# print "!"
 			for i in xrange(-1,2):
 				for j in xrange(-1,2):
@@ -174,7 +185,8 @@ class App:
 					if self.buttons[r+i][c+j]['state']!='disabled':
 						self.buttons[r+i][c+j]['relief']='sunken'
 		widget.grab_set()
-		widget['relief'] = 'sunken'
+		if widget['state']!='disabled':
+			widget['relief'] = 'sunken'
 		# print r,c
 		
 
@@ -188,16 +200,16 @@ class App:
 
 
 
-	def hover_enter(self, event, r, c):
-		""
-		# print r,c
-		if self.shift_l_down==True:
-			for i in xrange(-1,2):
-				for j in xrange(-1,2):
-					if not(0<=r+i<self.rows) or not(0<=c+j<self.columns):
-						continue
-					if self.buttons[r+i][c+j]['state']!='disabled':
-						self.buttons[r+i][c+j]['relief']='sunken'
+	# def hover_enter(self, event, r, c):
+	# 	""
+	# 	# print r,c
+	# 	if self.shift_l_down==True:
+	# 		for i in xrange(-1,2):
+	# 			for j in xrange(-1,2):
+	# 				if not(0<=r+i<self.rows) or not(0<=c+j<self.columns):
+	# 					continue
+	# 				if self.buttons[r+i][c+j]['state']!='disabled':
+	# 					self.buttons[r+i][c+j]['relief']='sunken'
 
 	def hover_leave(self, event, r, c):
 		""
@@ -230,8 +242,10 @@ class App:
 		for row in self.buttons:
 			for e in row:
 				e.grab_release()
+
 		if self.started == False:
-			self.populate(rows=self.rows, columns=self.columns, bombs=self.bombs, click_position=(r,c))
+			if self.cheat_mode == False:
+				self.populate(rows=self.rows, columns=self.columns, bombs=self.bombs, click_position=(r,c))
 			self.started = True
 
 		if self.revealed_map[r][c]==True:
@@ -247,6 +261,7 @@ class App:
 		"""If all non-bomb spaces are revealed"""
 		if (self.rows*self.columns == self.bombs + self.revealed):
 			print "YOU WIN"
+			self.win_condition()
 
 		"""If a bomb is clicked"""
 		if self.map[r][c]=="*":
@@ -284,9 +299,31 @@ class App:
 				self.right_mouse_down = time.time() + 500
 
 			# print self.left_mouse_down, self.right_mouse_down
+			"""If left$right mouse down, sink all adjacent cells"""
+			if self.left_mouse_down and self.right_mouse_down and self.buttons[r][c]['state']!='disabled':
+				for i in xrange(-1,2):
+					for j in xrange(-1,2):
+						if not(0<=r+i<self.rows) or not(0<=c+j<self.columns):
+							continue
+						if self.buttons[r+i][c+j]['state']!='disabled':
+							self.buttons[r+i][c+j]['relief']='sunken'
+
 
 		if state==False:
+			# if self.left_mouse_down==False:
 			self.buttons[r][c].grab_release()
+
+			# widget = self.button_frame.winfo_containing(event.x_root, event.y_root)
+			# r2, c2 = self.find_button(widget)
+			# print r,c, r2, c2
+
+			for i in xrange(-1,2):
+				for j in xrange(-1,2):
+					if self.buttons[r][c]['state']=='disabled' or self.revealed_map[r][c]==True:
+						continue
+					self.buttons[r+i][c+j]['relief']='raised'
+
+			
 			# for r in xrange(0, self.rows):
 			# 	for c in xrange(0, self.columns):
 			# 		if self.revealed_map[r][c]==True:
@@ -305,7 +342,7 @@ class App:
 			# 	return
 	
 			if self.left_mouse_down and self.right_mouse_down:
-				print 'both down'
+				# print 'both down'
 				if self.buttons[r][c]['state']!='disabled':
 					if self.revealed_map[r][c]==True:
 						"""Count the number of flags in the adjacent tiles"""
@@ -326,16 +363,17 @@ class App:
 
 
 			elif self.left_mouse_down:
-				print 'left down'
+				# print 'left down'
 				if self.buttons[r][c]['state']!='disabled':
 					self.button_click(r,c)
 
 			elif self.right_mouse_down:
-				print 'right down'
+				# print 'right down'
 				if self.revealed_map[r][c]==False:
 					self.set_flag(r,c)
 				else:
-					print r,c,"!"
+					""
+					# print r,c,"!"
 
 			self.left_mouse_down = False
 			self.right_mouse_down = False
@@ -350,11 +388,26 @@ class App:
 			self.flags+=1
 			if (self.flags == self.bombs) and (self.rows*self.columns == self.flags + self.revealed):
 				print "YOU WIN"
+				self.win_condition()
 
 
 		elif self.buttons[r][c]['state']=="disabled" and self.buttons[r][c]['text']=="F":
 			self.buttons[r][c].config(state="normal", text="")
 			self.flags-=1
+
+	def win_condition(self):
+		print "!"
+		for r in xrange(0, self.rows):
+			for c in xrange(0, self.columns):
+				b = self.buttons[r][c]
+				b.unbind("<Button-1>")
+				b.unbind("<Button-3>")
+				b.unbind("<ButtonRelease-1>")
+				b.unbind("<ButtonRelease-3>")
+				b.unbind("<Leave>")
+				b.unbind("<B1-Motion>")
+				b.config(command = None)
+
 
 
 
