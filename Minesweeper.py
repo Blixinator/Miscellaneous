@@ -317,10 +317,16 @@ class App:
 			# r2, c2 = self.find_button(widget)
 			# print r,c, r2, c2
 
+			# print self.left_mouse_down, self.right_mouse_down
 			for i in xrange(-1,2):
 				for j in xrange(-1,2):
-					if self.buttons[r][c]['state']=='disabled' or self.revealed_map[r][c]==True:
+					if not(0<=r+i<self.rows) or not(0<=c+j<self.columns):
+							continue
+					if self.buttons[r+i][c+j]['state']=='disabled' or self.revealed_map[r+i][c+j]==True:
 						continue
+					# if self.left_mouse_down!=False and (i==0 and j==0):
+					# 	print "!"
+					# 	continue
 					self.buttons[r+i][c+j]['relief']='raised'
 
 			
