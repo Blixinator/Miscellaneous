@@ -1,12 +1,8 @@
 
 from Tkinter import *
 import random
-# import operator
 import time
 import tkFont
-
-def printf(s):
-	print s
 
 # class MyButton(Button):
 # 	def __int__(self, *args, **kwargs):
@@ -25,15 +21,20 @@ class App:
 		self.master = master
 
 		self.cheat_mode = False
+		# self.cheat_mode = True
 
 		self.rows = 10
 		self.columns = 10
 		self.bombs = 15
 
+		self.rows = 16
+		self.columns = 16
+		self.bombs = 40
+
 		self.difficulties = {\
-							"easy":[],\
-							"intermediate":[],\
-							"expert":[],\
+							"beginner":{"height":9, "width":9, "mines":10},\
+							"intermediate":{"height":16, "width":16, "mines":40},\
+							"expert":{"height":16, "width":30, "mines":99},\
 							"custom":[],\
 		}
 
@@ -54,6 +55,7 @@ class App:
 
 		self.initUI()
 		self.populate(rows=self.rows, columns=self.columns, bombs=self.bombs)
+		# print self.button_frame.winfo_width()
 		
 		
 
@@ -65,40 +67,38 @@ class App:
 		fileMenu.add_command(label="Exit", command=self.onExit)
 		menubar.add_cascade(label="File", menu=fileMenu)
 
+		self.top_frame = Frame(f)
+		self.flag_tracker = Label(self.top_frame, text="{:0>3}".format(self.bombs), width=3, bg='red')
+		self.flag_tracker.grid(row=0, column=0)
+
+		# test_label = Label(self.top_frame, text = "Put stuff here", bg='red')
+		# test_label.grid(row=0, column=1)
+
+		self.timer_label = Label(self.top_frame, text="999", width=3, bg='red')
+		self.timer_label.grid(row=0, column=2)
+
+		self.top_frame.grid(row=0)
+
 		self.button_frame = Frame(f)
-		self.button_frame.grid(row=1, column=1)
-
-		# self.master.bind("<KeyPress>", lambda event: self.shift_key(event, True))
-		# self.master.bind("<KeyRelease>", lambda event: self.shift_key(event, False))
-
-		self.bold_font = tkFont.Font(family="Helvetica", size=12, weight="bold")
+		self.button_frame.grid(row=1, column=0)
 
 		l = Label(f, text = "TEST1234567890\nTEST\nTEST", bg='red')
-
-
 		# l.grid(row=1, column=0)
 		
+		# self.row_entry = Entry(f)
+		# self.row_entry.grid(row=0, column=0)
 
-		self.row_entry = Entry(f)
-		self.row_entry.grid(row=0, column=0)
+		# self.column_entry = Entry(f)
+		# self.column_entry.grid(row=0, column=1)
 
-		self.column_entry = Entry(f)
-		self.column_entry.grid(row=0, column=1)
+		# self.bomb_entry = Entry(f)
+		# self.bomb_entry.grid(row=0, column=2)
 
-		self.bomb_entry = Entry(f)
-		self.bomb_entry.grid(row=0, column=2)
-
-		self.reset_button = Button(f, text = "Reset", command=lambda r=self.rows, c=self.columns, b=self.bombs: self.populate(r,c,b))
-		self.reset_button.grid(row=2, column=1)
+		self.reset_button = Button(self.top_frame, text = "Reset", command=lambda r=self.rows, c=self.columns, b=self.bombs: self.populate(r,c,b))
+		self.reset_button.grid(row=0, column=1)
 
 		f.pack_propagate(0)
 		f.pack(fill=BOTH)
-
-	# def shift_key(self, event, state):
-	# 	if event.keysym=="Shift_L":
-	# 		self.shift_l_down = state
-	# 		if state==False:
-	# 			""
 
 	def onExit(self):
 		quit()
@@ -107,16 +107,24 @@ class App:
 		self.started = False
 		self.flags = 0
 		self.revealed = 0
+		self.flag_tracker.config(text="{:0>3}".format(self.bombs))
+		self.timer_label.config(text="999")
 
 	def populate(self, rows, columns, bombs, click_position=None):
 		self.reset()
+
+		"""Create a list of possible locations to place bombs
+		This removes the need to randomly pick tiles until you find one without a bomb on it"""
 		possible_bomb_locations = range(0, self.rows*self.columns)
+		# clicked_r, clicked_c = 0,0
 		if click_position != None:
 			clicked_r, clicked_c = click_position
-			possible_bomb_locations.remove(clicked_c*clicked_r+clicked_c)
+			# print clicked_r, clicked_c, ((clicked_c+1)*clicked_r+clicked_c)
+			possible_bomb_locations.remove(clicked_r*self.rows+clicked_c)
 
 		for widget in self.button_frame.winfo_children():
 			widget.destroy()
+
 		self.buttons = [[] for r in xrange(0,rows)]
 		self.map = [[0]*columns for r in xrange(0,rows)]
 		self.revealed_map = [[False]*columns for r in xrange(0,rows)]
@@ -124,12 +132,16 @@ class App:
 		"""Place bombs
 		Select a random spot on the map. Add a bomb if there isn't already there. Increment the surrounding tiles"""
 		bombs_placed = 0
-		
 		while bombs_placed < bombs:
 			bomb_position = random.choice(possible_bomb_locations)
 			possible_bomb_locations.remove(bomb_position)
-			r = int(bomb_position/( self.rows))
+			r = int(bomb_position/( self.columns))
 			c = bomb_position % self.columns
+
+			# if (r,c)==(clicked_r,clicked_c):
+			# 	print ((clicked_c+1)*clicked_r+clicked_c), bomb_position, (clicked_r*self.rows+clicked_c)
+			# print r, c
+			# print ""
 			self.map[r][c] = "*"
 			for i in xrange(-1,2):
 				for j in xrange(-1,2):
@@ -169,7 +181,7 @@ class App:
 				# b.bind("<Enter>", self.blah(r,c))
 				b.bind("<B1-Motion>", lambda event: self.move_leave(event))
 
-				b.config(font = self.bold_font)
+				b.config(font = tkFont.Font(family="Helvetica", size=12, weight="bold"))
 				b.grid(row=r, column=c)
 				
 				self.buttons[r].append(b)
@@ -265,7 +277,7 @@ class App:
 
 		"""If all non-bomb spaces are revealed"""
 		if (self.rows*self.columns == self.bombs + self.revealed):
-			print "YOU WIN (1)"
+			print "YOU WIN"
 			self.win_condition()
 
 		"""If a bomb is clicked"""
@@ -403,6 +415,7 @@ class App:
 		if self.buttons[r][c]['state']=="normal":
 			self.buttons[r][c].config(state="disabled", text="F")
 			self.flags+=1
+			self.flag_tracker.config(text="{:0>3}".format(self.bombs-self.flags))
 
 			"""I don't think this condition is ever met"""
 			if (self.flags == self.bombs) and (self.rows*self.columns == self.flags + self.revealed):
@@ -413,6 +426,7 @@ class App:
 		elif self.buttons[r][c]['state']=="disabled" and self.buttons[r][c]['text']=="F":
 			self.buttons[r][c].config(state="normal", text="")
 			self.flags-=1
+			self.flag_tracker.config(text="{:0>3}".format(self.bombs-self.flags))
 
 	def win_condition(self):
 		# print "!"
@@ -428,10 +442,8 @@ class App:
 				b.config(command = "")
 
 
-
-
 root = Tk()
 root.title("Minesweeper")
-root.minsize(width=400, height=400)
+# root.minsize(width=400, height=400)
 app = App(root)
 root.mainloop()
