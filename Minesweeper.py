@@ -191,16 +191,16 @@ class App:
 					b.config(text=(self.map[r][c] if self.map[r][c]!=0 else " "))
 
 				"""Add bindings for left, right, and both mouse button clicks"""
-				b.bind("<Button-1>", lambda event, r=r, c=c: self.button_click2(event, 'left', True,r,c))
-				b.bind("<Button-3>", lambda event, r=r, c=c: self.button_click2(event, 'right', True,r,c))
-				b.bind("<ButtonRelease-1>", lambda event, r=r, c=c: self.button_click2(event, 'left', False,r,c))
-				b.bind("<ButtonRelease-3>", lambda event, r=r, c=c: self.button_click2(event, 'right', False,r,c))
+				b.bind("<Button-1>", lambda event: self.button_click2(event, 'left', True))
+				b.bind("<Button-3>", lambda event: self.button_click2(event, 'right', True))
+				b.bind("<ButtonRelease-1>", lambda event: self.button_click2(event, 'left', False))
+				b.bind("<ButtonRelease-3>", lambda event: self.button_click2(event, 'right', False))
 
 				# b.bind("<Enter>", lambda event, r=r, c=c: self.test(event, r,c))
 				# b.bind("<Leave>", lambda event, r=r, c=c: self.test(event, r,c))
 
 				# b.bind("<Enter>", lambda event, r=r, c=c: self.hover_enter(event, r, c))
-				b.bind("<Leave>", lambda event, r=r, c=c: self.hover_leave(event, r, c))
+				b.bind("<Leave>", lambda event: self.hover_leave(event))
 
 				# b.bind("<Enter>", self.blah(r,c))
 				b.bind("<B1-Motion>", lambda event: self.move_leave(event))
@@ -215,10 +215,14 @@ class App:
 
 		event.widget.grab_release()
 		widget = self.button_frame.winfo_containing(event.x_root, event.y_root)
-		if widget==None:
-			return
+		# if widget==None:
+		# 	return
+		# try:
+		# 	r,c = self.find_button(widget)
+		# except TypeError:
+		# 	return
 		try:
-			r,c = self.find_button(widget)
+			r, c = self.find_button(event)
 		except TypeError:
 			return
 
@@ -236,13 +240,23 @@ class App:
 		# print r,c
 		
 
-	def find_button(self, widget):
-		# widget = self.button_frame.winfo_containing(x, y)
+	# def find_button(self, widget):
+	# 	# widget = self.button_frame.winfo_containing(x, y)
+	# 	for i,r in enumerate(self.buttons):
+	# 		for j,b in enumerate(r):
+	# 			if widget==b:
+	# 				# print i,j
+	# 				return i,j
+
+	def find_button(self, ev):
+		widget = self.button_frame.winfo_containing(ev.x_root, ev.y_root)
+		li = [e for sublist in self.buttons for e in sublist]
+		# [e for sublist in ret for e in sublist]
 		for i,r in enumerate(self.buttons):
-					for j,b in enumerate(r):
-						if widget==b:
-							# print i,j
-							return i,j
+			for j,b in enumerate(r):
+				if widget==b:
+					return i,j
+
 
 
 
@@ -257,10 +271,16 @@ class App:
 	# 				if self.buttons[r+i][c+j]['state']!='disabled':
 	# 					self.buttons[r+i][c+j]['relief']='sunken'
 
-	def hover_leave(self, event, r, c):
+	def hover_leave(self, event):
 		""
 		# print r,c
 		# self.buttons[r][c].grab_release()
+
+		"Removing r, c from arguments added the bug the keeps buttons sunken"
+		try:
+			r,c = self.find_button(event)
+		except TypeError:
+			return
 
 		for i in xrange(-1,2):
 			for j in xrange(-1,2):
@@ -269,12 +289,12 @@ class App:
 				if self.revealed_map[r+i][c+j] == False:
 					self.buttons[r+i][c+j]['relief']='raised'
 
-	def test(self, event, r, c):
+	# def test(self, event, r, c):
 
-		print event.widget, "!"
-		print r,c, self.left_mouse_down, self.right_mouse_down
-		if self.left_mouse_down != False:
-			self.buttons[r][c]['relief']=SUNKEN
+	# 	print event.widget, "!"
+	# 	print r,c, self.left_mouse_down, self.right_mouse_down
+	# 	if self.left_mouse_down != False:
+	# 		self.buttons[r][c]['relief']=SUNKEN
 
 
 	"""Sink the button. Need to do this for the default command"""
@@ -335,8 +355,11 @@ class App:
 		else:
 			self.buttons[r][c].config(fg=self.colors[self.map[r][c]])
 
-	def button_click2(self, event, mouse, state, r, c):
+	def button_click2(self, event, mouse, state):
 		# print r, c
+		# widget = self.button_frame.winfo_containing(event.x_root, event.y_root)
+		# r, c = self.find_button(widget)
+		r, c = self.find_button(event)
 		if state == True:
 			if self.left_mouse_down and self.left_mouse_down <= time.time():
 				self.left_mouse_down = False
