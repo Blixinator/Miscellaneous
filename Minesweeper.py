@@ -25,18 +25,14 @@ class App:
 
 		self.rows = 10
 		self.columns = 10
-		self.bombs = 15
+		self.mines = 15
 
 		self.rows = 16
 		self.columns = 16
-		self.bombs = 40
+		self.mines = 40
 
-		self.difficulties = {\
-							"beginner":{"height":9, "width":9, "mines":10},\
-							"intermediate":{"height":16, "width":16, "mines":40},\
-							"expert":{"height":16, "width":30, "mines":99},\
-							"custom":[],\
-		}
+		self.mine_character = 'X'
+
 
 
 		self.colors = {1:"blue", 2:"green", 3:"red", 4:"purple", 5:"maroon", 6:"turquoise", 7:"black", 8:"gray"}
@@ -54,25 +50,34 @@ class App:
 		self.started = False
 
 		self.initUI()
-		self.populate(rows=self.rows, columns=self.columns, bombs=self.bombs)
-		# print self.button_frame.winfo_width()
+		# self.populate(rows=self.rows, columns=self.columns, mines=self.mines)
+
+		# self.master.update()
+		# self.master.minsize(width=self.master.winfo_width(), height=self.master.winfo_height())
+
+
 		
 		
 
 	def initUI(self):
-		f = Frame(self.master, height=400, width=400)
-		menubar = Menu(self.master)
-		self.master.config(menu=menubar)
-		fileMenu = Menu(menubar)
-		fileMenu.add_command(label="Exit", command=self.onExit)
-		menubar.add_cascade(label="File", menu=fileMenu)
+		f = Frame(self.master)
+		self.menu_bar = Menu(self.master)
+		self.master.config(menu=self.menu_bar)
+		# self.fileMenu = Menu(self.menu_bar)
+		# self.menu_bar.add_cascade(label="File", menu=self.fileMenu)
+		# self.fileMenu.add_command(label="Exit", command=self.onExit)
+		self.game_menu = Menu(self.menu_bar, tearoff=False)
+		self.menu_bar.add_cascade(label="Game", menu=self.game_menu)
+		self.game_menu.add_command(label='Beginner', command=lambda: self.set_difficulty('beginner'))
+		self.game_menu.add_command(label='Intermediate', command=lambda: self.set_difficulty('intermediate'))
+		self.game_menu.add_command(label='Expert', command=lambda: self.set_difficulty('expert'))
+		self.game_menu.add_command(label='Custom', command=lambda: self.set_difficulty('custom'))
+		
 
 		self.top_frame = Frame(f)
-		self.flag_tracker = Label(self.top_frame, text="{:0>3}".format(self.bombs), width=3, bg='red')
-		self.flag_tracker.grid(row=0, column=0)
 
-		# test_label = Label(self.top_frame, text = "Put stuff here", bg='red')
-		# test_label.grid(row=0, column=1)
+		self.flag_tracker = Label(self.top_frame, text="{:0>3}".format(self.mines), width=3, bg='red')
+		self.flag_tracker.grid(row=0, column=0)
 
 		self.timer_label = Label(self.top_frame, text="999", width=3, bg='red')
 		self.timer_label.grid(row=0, column=2)
@@ -80,47 +85,66 @@ class App:
 		self.top_frame.grid(row=0)
 
 		self.button_frame = Frame(f)
-		self.button_frame.grid(row=1, column=0)
+		self.button_frame.grid(row=1, column=0, sticky='nsew')
 
-		l = Label(f, text = "TEST1234567890\nTEST\nTEST", bg='red')
-		# l.grid(row=1, column=0)
-		
-		# self.row_entry = Entry(f)
-		# self.row_entry.grid(row=0, column=0)
-
-		# self.column_entry = Entry(f)
-		# self.column_entry.grid(row=0, column=1)
-
-		# self.bomb_entry = Entry(f)
-		# self.bomb_entry.grid(row=0, column=2)
-
-		self.reset_button = Button(self.top_frame, text = "Reset", command=lambda r=self.rows, c=self.columns, b=self.bombs: self.populate(r,c,b))
+		self.reset_button = Button(self.top_frame, text = "Reset", command=lambda r=self.rows, c=self.columns, m=self.mines: self.populate(r,c,m))
 		self.reset_button.grid(row=0, column=1)
 
 		f.pack_propagate(0)
 		f.pack(fill=BOTH)
 
+		self.populate(rows=self.rows, columns=self.columns, mines=self.mines)
+		# self.master.update()
+		# self.master.minsize(width=self.master.winfo_width(), height=self.master.winfo_height())
+		# self.master.maxsize(width=self.master.winfo_width(), height=self.master.winfo_height())
+
 	def onExit(self):
 		quit()
+
+	def set_difficulty(self, difficulty):
+
+		if difficulty == 'beginner':
+			self.rows = 9
+			self.columns = 9
+			self.mines = 10
+		elif difficulty == 'intermediate':
+			self.rows = 16
+			self.columns = 16
+			self.mines = 40
+		elif difficulty == 'expert':
+			self.rows = 16
+			self.columns = 30
+			self.mines = 99
+		elif difficulty == 'custom':
+			# TODO
+			return
+		else:
+			return
+
+		self.populate(rows=self.rows, columns=self.columns, mines=self.mines)
+		self.master.update()
+		self.master.minsize(width=self.button_frame.winfo_width(), height=self.button_frame.winfo_height() + self.top_frame.winfo_height())
+		self.master.maxsize(width=self.button_frame.winfo_width(), height=self.button_frame.winfo_height() + self.top_frame.winfo_height())
+
 
 	def reset(self):
 		self.started = False
 		self.flags = 0
 		self.revealed = 0
-		self.flag_tracker.config(text="{:0>3}".format(self.bombs))
+		self.flag_tracker.config(text="{:0>3}".format(self.mines))
 		self.timer_label.config(text="999")
 
-	def populate(self, rows, columns, bombs, click_position=None):
+	def populate(self, rows, columns, mines, click_position=None):
 		self.reset()
 
-		"""Create a list of possible locations to place bombs
-		This removes the need to randomly pick tiles until you find one without a bomb on it"""
-		possible_bomb_locations = range(0, self.rows*self.columns)
+		"""Create a list of possible locations to place mines
+		This removes the need to randomly pick tiles until you find one without a mine on it"""
+		possible_mine_locations = range(0, self.rows*self.columns)
 		# clicked_r, clicked_c = 0,0
 		if click_position != None:
 			clicked_r, clicked_c = click_position
 			# print clicked_r, clicked_c, ((clicked_c+1)*clicked_r+clicked_c)
-			possible_bomb_locations.remove(clicked_r*self.rows+clicked_c)
+			possible_mine_locations.remove(clicked_r*self.rows+clicked_c)
 
 		for widget in self.button_frame.winfo_children():
 			widget.destroy()
@@ -129,29 +153,29 @@ class App:
 		self.map = [[0]*columns for r in xrange(0,rows)]
 		self.revealed_map = [[False]*columns for r in xrange(0,rows)]
 		
-		"""Place bombs
-		Select a random spot on the map. Add a bomb if there isn't already there. Increment the surrounding tiles"""
-		bombs_placed = 0
-		while bombs_placed < bombs:
-			bomb_position = random.choice(possible_bomb_locations)
-			possible_bomb_locations.remove(bomb_position)
-			r = int(bomb_position/( self.columns))
-			c = bomb_position % self.columns
+		"""Place mines
+		Select a random spot on the map. Add a mine if there isn't already there. Increment the surrounding tiles"""
+		mines_placed = 0
+		while mines_placed < mines:
+			mine_position = random.choice(possible_mine_locations)
+			possible_mine_locations.remove(mine_position)
+			r = int(mine_position/( self.columns))
+			c = mine_position % self.columns
 
 			# if (r,c)==(clicked_r,clicked_c):
-			# 	print ((clicked_c+1)*clicked_r+clicked_c), bomb_position, (clicked_r*self.rows+clicked_c)
+			# 	print ((clicked_c+1)*clicked_r+clicked_c), mine_position, (clicked_r*self.rows+clicked_c)
 			# print r, c
 			# print ""
-			self.map[r][c] = "*"
+			self.map[r][c] = self.mine_character
 			for i in xrange(-1,2):
 				for j in xrange(-1,2):
 					if (i==0 and j==0) or not(0<=r+i<self.rows) or not(0<=c+j<self.columns):
 						continue
 			
-					if self.map[r+i][c+j]!="*":
+					if self.map[r+i][c+j]!=self.mine_character:
 						self.map[r+i][c+j]+=1
 
-			bombs_placed += 1
+			mines_placed += 1
 
 		"""Create Buttons"""
 		for r in xrange(0, rows):
@@ -191,7 +215,12 @@ class App:
 
 		event.widget.grab_release()
 		widget = self.button_frame.winfo_containing(event.x_root, event.y_root)
-		r,c = self.find_button(widget)
+		if widget==None:
+			return
+		try:
+			r,c = self.find_button(widget)
+		except TypeError:
+			return
 
 		if self.left_mouse_down!=False and self.right_mouse_down!=False and self.buttons[r][c]['state']!='disabled':
 			# print "!"
@@ -262,7 +291,7 @@ class App:
 
 		if self.started == False:
 			if self.cheat_mode == False:
-				self.populate(rows=self.rows, columns=self.columns, bombs=self.bombs, click_position=(r,c))
+				self.populate(rows=self.rows, columns=self.columns, mines=self.mines, click_position=(r,c))
 			self.started = True
 
 		if self.revealed_map[r][c]==True:
@@ -275,21 +304,22 @@ class App:
 		self.revealed+=1
 		self.revealed_map[r][c] = True
 
-		"""If all non-bomb spaces are revealed"""
-		if (self.rows*self.columns == self.bombs + self.revealed):
+		"""If all non-mine spaces are revealed"""
+		if (self.rows*self.columns == self.mines + self.revealed):
 			print "YOU WIN"
+
 			self.win_condition()
 
-		"""If a bomb is clicked"""
-		if self.map[r][c]=="*":
+		"""If a mine is clicked"""
+		if self.map[r][c]==self.mine_character:
 			print "BOOM!"
 			self.buttons[r][c]['bg']='red'
 			self.sink(r,c)
 			self.buttons[r][c]['relief']='sunken'
 			for row in xrange(0, self.rows):
 				for column in xrange(0, self.columns):
-					if self.map[row][column] == "*":
-						self.buttons[row][column].config(state="disabled", text="*")
+					if self.map[row][column] == self.mine_character:
+						self.buttons[row][column].config(state="disabled", text=self.mine_character)
 					self.buttons[row][column].config(state="disabled")
 
 
@@ -298,7 +328,7 @@ class App:
 				for j in xrange(-1,2):
 					if (i==0 and j==0) or not(0<=r+i<self.rows) or not(0<=c+j<self.columns):
 						continue
-					if self.map[r+i][c+j]!="*" and self.revealed_map[r+i][c+j] == False:
+					if self.map[r+i][c+j]!=self.mine_character and self.revealed_map[r+i][c+j] == False:
 						self.button_click(r+i, c+j)
 	
 
@@ -415,10 +445,10 @@ class App:
 		if self.buttons[r][c]['state']=="normal":
 			self.buttons[r][c].config(state="disabled", text="F")
 			self.flags+=1
-			self.flag_tracker.config(text="{:0>3}".format(self.bombs-self.flags))
+			self.flag_tracker.config(text="{:0>3}".format(self.mines-self.flags))
 
 			"""I don't think this condition is ever met"""
-			if (self.flags == self.bombs) and (self.rows*self.columns == self.flags + self.revealed):
+			if (self.flags == self.mines) and (self.rows*self.columns == self.flags + self.revealed):
 				print "YOU WIN (2)"
 				self.win_condition()
 
@@ -426,7 +456,7 @@ class App:
 		elif self.buttons[r][c]['state']=="disabled" and self.buttons[r][c]['text']=="F":
 			self.buttons[r][c].config(state="normal", text="")
 			self.flags-=1
-			self.flag_tracker.config(text="{:0>3}".format(self.bombs-self.flags))
+			self.flag_tracker.config(text="{:0>3}".format(self.mines-self.flags))
 
 	def win_condition(self):
 		# print "!"
@@ -440,6 +470,8 @@ class App:
 				b.unbind("<Leave>")
 				b.unbind("<B1-Motion>")
 				b.config(command = "")
+				if self.revealed_map[r][c]==False and self.buttons[r][c]['state']!='disabled':
+					self.buttons[r][c]['state'] = 'disabled'
 
 
 root = Tk()
