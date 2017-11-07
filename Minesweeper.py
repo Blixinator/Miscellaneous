@@ -3,11 +3,13 @@ from Tkinter import *
 import random
 import time
 import tkFont
+import threading
 
 class MyButton(Button):
 	def __int__(self, *args, **kwargs):
 		Button.__init__(self, *args, **kwargs)
 		self.revealed = False
+		self.flagged = False
 
 
 	def set_row(self, row):
@@ -19,7 +21,6 @@ class MyButton(Button):
 	def set_value(self, value):
 		self.value = value
 
-
 	def row(self):
 		return self.r
 
@@ -29,9 +30,18 @@ class MyButton(Button):
 	def value(self):
 		return self.value
 
+	def set_flag(self, state):
+		self.flagged = state
+
+	def get_flag(self):
+		return self.flagged
+
+
+
 class App:
 	def __init__(self, master):
 		self.master = master
+		# self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
 		self.cheat_mode = False
 		# self.cheat_mode = True
@@ -45,6 +55,7 @@ class App:
 		self.mines = 40
 
 		self.mine_character = 'X'
+		self.flag_character = 'F'
 
 		self.colors = {1:"blue", 2:"green", 3:"red", 4:"purple", 5:"maroon", 6:"turquoise", 7:"black", 8:"gray"}
 
@@ -97,9 +108,23 @@ class App:
 
 		self.populate(rows=self.rows, columns=self.columns, mines=self.mines)
 
+		# self.test()
+
 
 	def onExit(self):
 		quit()
+
+	def on_closing(self):
+		# threading.Timer(1.0, self.test).cancel()
+		self.timer.cancel()
+		self.timer.join()
+		self.master.destroy()
+		# self.timer.cancel()
+		quit()
+
+	def test(self):
+		self.timer = threading.Timer(1.0, self.test).start()
+		print "test"
 
 	def set_difficulty(self, difficulty):
 
@@ -149,13 +174,13 @@ class App:
 			widget.destroy()
 
 		self.buttons = [[] for r in xrange(0,rows)]
-		self.map = [[0]*columns for r in xrange(0,rows)]
-		self.revealed_map = [[False]*columns for r in xrange(0,rows)]
+		self.map = [[0]*self.columns for r in xrange(0,self.rows)]
+		self.revealed_map = [[False]*self.columns for r in xrange(0,self.rows)]
 		
 		"""Place mines
 		Select a random spot on the map. Add a mine if there isn't already there. Increment the surrounding tiles"""
 		mines_placed = 0
-		while mines_placed < mines:
+		while mines_placed < self.mines:
 			mine_position = random.choice(possible_mine_locations)
 			possible_mine_locations.remove(mine_position)
 			r = int(mine_position/( self.columns))
@@ -174,12 +199,12 @@ class App:
 			mines_placed += 1
 
 		"""Create Buttons"""
-		for r in xrange(0, rows):
-			for c in xrange(0, columns):
+		for r in xrange(0, self.rows):
+			for c in xrange(0, self.columns):
 
 
-				# b = Button(self.button_frame, text = "", width=2, command = lambda r=r, c=c: self.buttons[r][c].config(relief=SUNKEN))
-				b = MyButton(self.button_frame, text = "", width=2, command = lambda r=r, c=c: self.sink(r,c))
+				b = MyButton(self.button_frame, text = "", width=2, command = lambda r=r, c=c: self.buttons[r][c].config(relief=SUNKEN))
+				# b = MyButton(self.button_frame, text = "", width=2, command = lambda r=r, c=c: self.sink(r,c))
 
 				b.set_row(r)
 				b.set_col(c)
@@ -193,11 +218,8 @@ class App:
 				b.bind("<Button-3>", lambda event: self.button_click2(event, 'right', True))
 				b.bind("<ButtonRelease-1>", lambda event: self.button_click2(event, 'left', False))
 				b.bind("<ButtonRelease-3>", lambda event: self.button_click2(event, 'right', False))
-
-				b.bind("<Leave>", lambda event: self.hover_leave(event))
-
+				b.bind("<Leave>", lambda event, r=r, c=c: self.hover_leave(event,r,c))
 				b.bind("<B1-Motion>", lambda event: self.move_leave(event))
-
 				b.config(font = tkFont.Font(family="Helvetica", size=12, weight="bold"))
 				b.grid(row=r, column=c)
 				
@@ -222,30 +244,23 @@ class App:
 						continue
 					if self.buttons[r+i][c+j]['state']!='disabled':
 						self.buttons[r+i][c+j]['relief']='sunken'
+
 		widget.grab_set()
 		if widget['state']!='disabled':
 			widget['relief'] = 'sunken'
 		
 
 	# "Removing r, c from arguments added the bug the keeps buttons sunken"
-	def hover_leave(self, event):
+	def hover_leave(self, event, r, c):
 
-		# self.buttons[r][c].grab_release()
-
-		widget = self.button_frame.winfo_containing(event.x_root, event.y_root)
-		try:
-			r = widget.row()
-			c = widget.col()
-		except AttributeError:
-			return
-
-		
 		for i in xrange(-1,2):
 			for j in xrange(-1,2):
 				if not(0<=r+i<self.rows) or not(0<=c+j<self.columns):
 					continue
 				if self.revealed_map[r+i][c+j] == False:
 					self.buttons[r+i][c+j]['relief']='raised'
+
+
 
 	
 	"""Sink the button. Need to do this for the default command"""
@@ -264,6 +279,7 @@ class App:
 			if self.cheat_mode == False:
 				self.populate(rows=self.rows, columns=self.columns, mines=self.mines, click_position=(r,c))
 			self.started = True
+			
 
 		if self.revealed_map[r][c]==True:
 			return
@@ -394,12 +410,12 @@ class App:
 			return
 
 		if self.buttons[r][c]['state']=="normal":
-			self.buttons[r][c].config(state="disabled", text="F")
+			self.buttons[r][c].config(state="disabled", text=self.flag_character)
 			self.flags+=1
 			self.flag_tracker.config(text="{:0>3}".format(self.mines-self.flags))
 			
 
-		elif self.buttons[r][c]['state']=="disabled" and self.buttons[r][c]['text']=="F":
+		elif self.buttons[r][c]['state']=="disabled" and self.buttons[r][c]['text']==self.flag_character:
 			self.buttons[r][c].config(state="normal", text="")
 			self.flags-=1
 			self.flag_tracker.config(text="{:0>3}".format(self.mines-self.flags))
@@ -423,4 +439,5 @@ class App:
 root = Tk()
 root.title("Minesweeper")
 app = App(root)
+
 root.mainloop()
