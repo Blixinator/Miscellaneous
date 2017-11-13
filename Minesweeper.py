@@ -71,6 +71,10 @@ class App:
 		self.revealed = 0
 		self.started = False
 
+		self.elapsed = 0
+
+		self.timer = threading.Timer(1.0, self.test)
+
 		self.initUI()
 
 
@@ -90,25 +94,27 @@ class App:
 		self.top_frame = Frame(f)
 
 		self.flag_tracker = Label(self.top_frame, text="{:0>3}".format(self.mines), width=3, bg='red')
-		self.flag_tracker.grid(row=0, column=0)
+		self.flag_tracker.pack(side='left')
 
 		self.timer_label = Label(self.top_frame, text="999", width=3, bg='red')
-		self.timer_label.grid(row=0, column=2)
+		self.timer_label.pack(side='right')
 
-		self.top_frame.grid(row=0)
+		self.reset_button = Button(self.top_frame, text = "Reset", command=lambda r=self.rows, c=self.columns, m=self.mines: self.populate(r,c,m))
+		self.reset_button.pack()
+
+		self.top_frame.grid(row=0, sticky = "WE")
 
 		self.button_frame = Frame(f)
 		self.button_frame.grid(row=1, column=0, sticky='nsew')
 
-		self.reset_button = Button(self.top_frame, text = "Reset", command=lambda r=self.rows, c=self.columns, m=self.mines: self.populate(r,c,m))
-		self.reset_button.grid(row=0, column=1)
+
 
 		f.pack_propagate(0)
 		f.pack(fill=BOTH)
 
 		self.populate(rows=self.rows, columns=self.columns, mines=self.mines)
 
-		# self.test()
+		self.test()
 
 
 	def onExit(self):
@@ -123,8 +129,20 @@ class App:
 		quit()
 
 	def test(self):
-		self.timer = threading.Timer(1.0, self.test).start()
-		print "test"
+		if self.elapsed == 0:
+			self.timer.start()
+		if self.elapsed < 999:
+			# print "!"
+			try:
+				self.elapsed += 1
+				# print self.elapsed
+				self.timer_label['text'] = "{:0>3}".format(999-self.elapsed)
+			except TclError:
+				self.timer.cancel()
+				print "WHY DOESN'T THIS CANCEL?"
+				""
+		else:
+			""
 
 	def set_difficulty(self, difficulty):
 
@@ -167,7 +185,7 @@ class App:
 		possible_mine_locations = range(0, self.rows*self.columns)
 		if click_position != None:
 			clicked_r, clicked_c = click_position
-			possible_mine_locations.remove(clicked_r*self.rows+clicked_c)
+			possible_mine_locations.remove(clicked_r*self.columns+clicked_c)
 
 		"MAYBE REDOING THIS WILL SPEED UP RESET"
 		for widget in self.button_frame.winfo_children():
