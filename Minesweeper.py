@@ -38,6 +38,29 @@ class MyButton(Button):
 
 
 
+class MyButton(Button):
+	def __int__(self, *args, **kwargs):
+		Button.__init__(self, *args, **kwargs)
+
+
+	def set_row(self, row):
+		self.r = row
+
+	def set_col(self, col):
+		self.c = col
+
+	def set_value(self, value):
+		self.value = value
+
+	def row(self):
+		return self.r
+
+	def col(self):
+		return self.c
+
+	def value(self):
+		return self.value
+
 class App:
 	def __init__(self, master):
 		self.master = master
@@ -221,6 +244,7 @@ class App:
 			for c in xrange(0, self.columns):
 
 
+
 				b = MyButton(self.button_frame, text = "", width=2, command = lambda r=r, c=c: self.buttons[r][c].config(relief=SUNKEN))
 				# b = MyButton(self.button_frame, text = "", width=2, command = lambda r=r, c=c: self.sink(r,c))
 
@@ -293,6 +317,8 @@ class App:
 			for e in row:
 				e.grab_release()
 
+		print self.buttons[r][c].row(), self.buttons[r][c].col()
+
 		if self.started == False:
 			if self.cheat_mode == False:
 				self.populate(rows=self.rows, columns=self.columns, mines=self.mines, click_position=(r,c))
@@ -304,6 +330,7 @@ class App:
 
 		self.buttons[r][c]['relief']='sunken'
 		self.buttons[r][c].config( text=(self.map[r][c] if self.map[r][c]!=0 else " "))
+
 
 
 		self.revealed+=1
