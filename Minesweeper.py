@@ -3,18 +3,40 @@ from Tkinter import *
 import random
 import time
 import tkFont
+import threading
 
-# class MyButton(Button):
-# 	def __int__(self, *args, **kwargs):
-# 		Button.__init__(self, *args, **kwargs)
-# 		# self['revealed'] = False
-# 		self.revealed = False
+class MyButton(Button):
+	def __int__(self, *args, **kwargs):
+		Button.__init__(self, *args, **kwargs)
+		self.revealed = False
+		self.flagged = False
 
-# 	def reveal(self):
-# 		self.revealed = True
 
-# 	def is_revealed(self):
-# 		return self.revealed
+	def set_row(self, row):
+		self.r = row
+
+	def set_col(self, col):
+		self.c = col
+
+	def set_value(self, value):
+		self.value = value
+
+	def row(self):
+		return self.r
+
+	def col(self):
+		return self.c
+
+	def value(self):
+		return self.value
+
+	def set_flag(self, state):
+		self.flagged = state
+
+	def get_flag(self):
+		return self.flagged
+
+
 
 class MyButton(Button):
 	def __int__(self, *args, **kwargs):
@@ -42,6 +64,7 @@ class MyButton(Button):
 class App:
 	def __init__(self, master):
 		self.master = master
+		# self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
 		self.cheat_mode = False
 		# self.cheat_mode = True
@@ -55,8 +78,7 @@ class App:
 		self.mines = 40
 
 		self.mine_character = 'X'
-
-
+		self.flag_character = 'F'
 
 		self.colors = {1:"blue", 2:"green", 3:"red", 4:"purple", 5:"maroon", 6:"turquoise", 7:"black", 8:"gray"}
 
@@ -72,25 +94,20 @@ class App:
 		self.revealed = 0
 		self.started = False
 
+		self.elapsed = 0
+
+		self.timer = threading.Timer(1.0, self.test)
+
 		self.initUI()
-		# self.populate(rows=self.rows, columns=self.columns, mines=self.mines)
 
-		# self.master.update()
-		# self.master.minsize(width=self.master.winfo_width(), height=self.master.winfo_height())
-
-
-		
-		
 
 	def initUI(self):
 		f = Frame(self.master)
 		self.menu_bar = Menu(self.master)
 		self.master.config(menu=self.menu_bar)
-		# self.fileMenu = Menu(self.menu_bar)
-		# self.menu_bar.add_cascade(label="File", menu=self.fileMenu)
-		# self.fileMenu.add_command(label="Exit", command=self.onExit)
 		self.game_menu = Menu(self.menu_bar, tearoff=False)
 		self.menu_bar.add_cascade(label="Game", menu=self.game_menu)
+
 		self.game_menu.add_command(label='Beginner', command=lambda: self.set_difficulty('beginner'))
 		self.game_menu.add_command(label='Intermediate', command=lambda: self.set_difficulty('intermediate'))
 		self.game_menu.add_command(label='Expert', command=lambda: self.set_difficulty('expert'))
@@ -100,29 +117,55 @@ class App:
 		self.top_frame = Frame(f)
 
 		self.flag_tracker = Label(self.top_frame, text="{:0>3}".format(self.mines), width=3, bg='red')
-		self.flag_tracker.grid(row=0, column=0)
+		self.flag_tracker.pack(side='left')
 
 		self.timer_label = Label(self.top_frame, text="999", width=3, bg='red')
-		self.timer_label.grid(row=0, column=2)
+		self.timer_label.pack(side='right')
 
-		self.top_frame.grid(row=0)
+		self.reset_button = Button(self.top_frame, text = "Reset", command=lambda r=self.rows, c=self.columns, m=self.mines: self.populate(r,c,m))
+		self.reset_button.pack()
+
+		self.top_frame.grid(row=0, sticky = "WE")
 
 		self.button_frame = Frame(f)
 		self.button_frame.grid(row=1, column=0, sticky='nsew')
 
-		self.reset_button = Button(self.top_frame, text = "Reset", command=lambda r=self.rows, c=self.columns, m=self.mines: self.populate(r,c,m))
-		self.reset_button.grid(row=0, column=1)
+
 
 		f.pack_propagate(0)
 		f.pack(fill=BOTH)
 
 		self.populate(rows=self.rows, columns=self.columns, mines=self.mines)
-		# self.master.update()
-		# self.master.minsize(width=self.master.winfo_width(), height=self.master.winfo_height())
-		# self.master.maxsize(width=self.master.winfo_width(), height=self.master.winfo_height())
+
+		self.test()
+
 
 	def onExit(self):
 		quit()
+
+	def on_closing(self):
+		# threading.Timer(1.0, self.test).cancel()
+		self.timer.cancel()
+		self.timer.join()
+		self.master.destroy()
+		# self.timer.cancel()
+		quit()
+
+	def test(self):
+		if self.elapsed == 0:
+			self.timer.start()
+		if self.elapsed < 999:
+			# print "!"
+			try:
+				self.elapsed += 1
+				# print self.elapsed
+				self.timer_label['text'] = "{:0>3}".format(999-self.elapsed)
+			except TclError:
+				self.timer.cancel()
+				print "WHY DOESN'T THIS CANCEL?"
+				""
+		else:
+			""
 
 	def set_difficulty(self, difficulty):
 
@@ -163,32 +206,28 @@ class App:
 		"""Create a list of possible locations to place mines
 		This removes the need to randomly pick tiles until you find one without a mine on it"""
 		possible_mine_locations = range(0, self.rows*self.columns)
-		# clicked_r, clicked_c = 0,0
 		if click_position != None:
 			clicked_r, clicked_c = click_position
-			# print clicked_r, clicked_c, ((clicked_c+1)*clicked_r+clicked_c)
-			possible_mine_locations.remove(clicked_r*self.rows+clicked_c)
+			possible_mine_locations.remove(clicked_r*self.columns+clicked_c)
 
+		"MAYBE REDOING THIS WILL SPEED UP RESET"
 		for widget in self.button_frame.winfo_children():
 			widget.destroy()
 
 		self.buttons = [[] for r in xrange(0,rows)]
-		self.map = [[0]*columns for r in xrange(0,rows)]
-		self.revealed_map = [[False]*columns for r in xrange(0,rows)]
+		self.map = [[0]*self.columns for r in xrange(0,self.rows)]
+		self.revealed_map = [[False]*self.columns for r in xrange(0,self.rows)]
 		
 		"""Place mines
 		Select a random spot on the map. Add a mine if there isn't already there. Increment the surrounding tiles"""
 		mines_placed = 0
-		while mines_placed < mines:
+		while mines_placed < self.mines:
 			mine_position = random.choice(possible_mine_locations)
 			possible_mine_locations.remove(mine_position)
 			r = int(mine_position/( self.columns))
 			c = mine_position % self.columns
 
-			# if (r,c)==(clicked_r,clicked_c):
-			# 	print ((clicked_c+1)*clicked_r+clicked_c), mine_position, (clicked_r*self.rows+clicked_c)
-			# print r, c
-			# print ""
+
 			self.map[r][c] = self.mine_character
 			for i in xrange(-1,2):
 				for j in xrange(-1,2):
@@ -201,13 +240,13 @@ class App:
 			mines_placed += 1
 
 		"""Create Buttons"""
-		for r in xrange(0, rows):
-			for c in xrange(0, columns):
+		for r in xrange(0, self.rows):
+			for c in xrange(0, self.columns):
 
-				# b = Button(self.button_frame, text = "", width=2, command=lambda r=r, c=c: self.button_click(r,c))
-				# b = Button(self.button_frame, text = "", width=2, command = lambda r=r, c=c: self.buttons[r][c].config(relief=SUNKEN))
-				b = MyButton(self.button_frame, text = "", width=2, command = lambda r=r, c=c: self.sink(r,c))
-				# b = Button(self.button_frame, text = "", width=2)
+
+
+				b = MyButton(self.button_frame, text = "", width=2, command = lambda r=r, c=c: self.buttons[r][c].config(relief=SUNKEN))
+				# b = MyButton(self.button_frame, text = "", width=2, command = lambda r=r, c=c: self.sink(r,c))
 
 				b.set_row(r)
 				b.set_col(c)
@@ -217,20 +256,12 @@ class App:
 					b.config(text=(self.map[r][c] if self.map[r][c]!=0 else " "))
 
 				"""Add bindings for left, right, and both mouse button clicks"""
-				b.bind("<Button-1>", lambda event, r=r, c=c: self.button_click2(event, 'left', True,r,c))
-				b.bind("<Button-3>", lambda event, r=r, c=c: self.button_click2(event, 'right', True,r,c))
-				b.bind("<ButtonRelease-1>", lambda event, r=r, c=c: self.button_click2(event, 'left', False,r,c))
-				b.bind("<ButtonRelease-3>", lambda event, r=r, c=c: self.button_click2(event, 'right', False,r,c))
-
-				# b.bind("<Enter>", lambda event, r=r, c=c: self.test(event, r,c))
-				# b.bind("<Leave>", lambda event, r=r, c=c: self.test(event, r,c))
-
-				# b.bind("<Enter>", lambda event, r=r, c=c: self.hover_enter(event, r, c))
-				b.bind("<Leave>", lambda event, r=r, c=c: self.hover_leave(event, r, c))
-
-				# b.bind("<Enter>", self.blah(r,c))
+				b.bind("<Button-1>", lambda event: self.button_click2(event, 'left', True))
+				b.bind("<Button-3>", lambda event: self.button_click2(event, 'right', True))
+				b.bind("<ButtonRelease-1>", lambda event: self.button_click2(event, 'left', False))
+				b.bind("<ButtonRelease-3>", lambda event: self.button_click2(event, 'right', False))
+				b.bind("<Leave>", lambda event, r=r, c=c: self.hover_leave(event,r,c))
 				b.bind("<B1-Motion>", lambda event: self.move_leave(event))
-
 				b.config(font = tkFont.Font(family="Helvetica", size=12, weight="bold"))
 				b.grid(row=r, column=c)
 				
@@ -238,55 +269,31 @@ class App:
 
 	def move_leave(self, event):
 		
-
 		event.widget.grab_release()
 		widget = self.button_frame.winfo_containing(event.x_root, event.y_root)
-		if widget==None:
-			return
+
 		try:
-			r,c = self.find_button(widget)
-		except TypeError:
+			r = widget.row()
+			c = widget.col()
+		except AttributeError:
 			return
 
+
 		if self.left_mouse_down!=False and self.right_mouse_down!=False and self.buttons[r][c]['state']!='disabled':
-			# print "!"
 			for i in xrange(-1,2):
 				for j in xrange(-1,2):
 					if not(0<=r+i<self.rows) or not(0<=c+j<self.columns):
 						continue
 					if self.buttons[r+i][c+j]['state']!='disabled':
 						self.buttons[r+i][c+j]['relief']='sunken'
+
 		widget.grab_set()
 		if widget['state']!='disabled':
 			widget['relief'] = 'sunken'
-		# print r,c
 		
 
-	def find_button(self, widget):
-		# widget = self.button_frame.winfo_containing(x, y)
-		for i,r in enumerate(self.buttons):
-					for j,b in enumerate(r):
-						if widget==b:
-							# print i,j
-							return i,j
-
-
-
-	# def hover_enter(self, event, r, c):
-	# 	""
-	# 	# print r,c
-	# 	if self.shift_l_down==True:
-	# 		for i in xrange(-1,2):
-	# 			for j in xrange(-1,2):
-	# 				if not(0<=r+i<self.rows) or not(0<=c+j<self.columns):
-	# 					continue
-	# 				if self.buttons[r+i][c+j]['state']!='disabled':
-	# 					self.buttons[r+i][c+j]['relief']='sunken'
-
+	# "Removing r, c from arguments added the bug the keeps buttons sunken"
 	def hover_leave(self, event, r, c):
-		""
-		# print r,c
-		# self.buttons[r][c].grab_release()
 
 		for i in xrange(-1,2):
 			for j in xrange(-1,2):
@@ -295,14 +302,9 @@ class App:
 				if self.revealed_map[r+i][c+j] == False:
 					self.buttons[r+i][c+j]['relief']='raised'
 
-	def test(self, event, r, c):
-
-		print event.widget, "!"
-		print r,c, self.left_mouse_down, self.right_mouse_down
-		if self.left_mouse_down != False:
-			self.buttons[r][c]['relief']=SUNKEN
 
 
+	
 	"""Sink the button. Need to do this for the default command"""
 	def sink(self, r, c):
 		self.buttons[r][c]['relief'] = 'sunken'
@@ -321,6 +323,7 @@ class App:
 			if self.cheat_mode == False:
 				self.populate(rows=self.rows, columns=self.columns, mines=self.mines, click_position=(r,c))
 			self.started = True
+			
 
 		if self.revealed_map[r][c]==True:
 			return
@@ -364,8 +367,11 @@ class App:
 		else:
 			self.buttons[r][c].config(fg=self.colors[self.map[r][c]])
 
-	def button_click2(self, event, mouse, state, r, c):
-		# print r, c
+	def button_click2(self, event, mouse, state):
+		widget = self.button_frame.winfo_containing(event.x_root, event.y_root)
+		r = widget.row()
+		c = widget.col()
+
 		if state == True:
 			if self.left_mouse_down and self.left_mouse_down <= time.time():
 				self.left_mouse_down = False
@@ -378,7 +384,7 @@ class App:
 				self.right_mouse_down = time.time() + 500
 
 			# print self.left_mouse_down, self.right_mouse_down
-			"""If left$right mouse down, sink all adjacent cells"""
+			"""If left&right mouse down, sink all adjacent cells"""
 			if self.left_mouse_down and self.right_mouse_down and self.buttons[r][c]['state']!='disabled':
 				for i in xrange(-1,2):
 					for j in xrange(-1,2):
@@ -392,39 +398,16 @@ class App:
 			# if self.left_mouse_down==False:
 			self.buttons[r][c].grab_release()
 
-			# widget = self.button_frame.winfo_containing(event.x_root, event.y_root)
-			# r2, c2 = self.find_button(widget)
-			# print r,c, r2, c2
-
-			# print self.left_mouse_down, self.right_mouse_down
 			for i in xrange(-1,2):
 				for j in xrange(-1,2):
 					if not(0<=r+i<self.rows) or not(0<=c+j<self.columns):
 							continue
 					if self.buttons[r+i][c+j]['state']=='disabled' or self.revealed_map[r+i][c+j]==True:
 						continue
-					# if self.left_mouse_down!=False and (i==0 and j==0):
-					# 	print "!"
-					# 	continue
+
 					self.buttons[r+i][c+j]['relief']='raised'
 
 			
-			# for r in xrange(0, self.rows):
-			# 	for c in xrange(0, self.columns):
-			# 		if self.revealed_map[r][c]==True:
-			# 			# self.buttons[r][c]['relief']='raised'
-			# 			self.buttons[r][c].grab_release()
-
-			# if not(0<=event.x<=self.buttons[r][c].winfo_width()) or not(0<=event.y<=self.buttons[r][c].winfo_height()):
-			# 	# print self.master.winfo_containing(event.x_root, event.y_root)
-
-			# 	"""Find the button that the mouse is released over"""
-			# 	widget = self.button_frame.winfo_containing(event.x_root, event.y_root)
-			# 	for i,r in enumerate(self.buttons):
-			# 		for j,b in enumerate(r):
-			# 			if widget==b:
-			# 				print i,j
-			# 	return
 	
 			if self.left_mouse_down and self.right_mouse_down:
 				# print 'both down'
@@ -472,17 +455,12 @@ class App:
 			return
 
 		if self.buttons[r][c]['state']=="normal":
-			self.buttons[r][c].config(state="disabled", text="F")
+			self.buttons[r][c].config(state="disabled", text=self.flag_character)
 			self.flags+=1
 			self.flag_tracker.config(text="{:0>3}".format(self.mines-self.flags))
+			
 
-			"""I don't think this condition is ever met"""
-			if (self.flags == self.mines) and (self.rows*self.columns == self.flags + self.revealed):
-				print "YOU WIN (2)"
-				self.win_condition()
-
-
-		elif self.buttons[r][c]['state']=="disabled" and self.buttons[r][c]['text']=="F":
+		elif self.buttons[r][c]['state']=="disabled" and self.buttons[r][c]['text']==self.flag_character:
 			self.buttons[r][c].config(state="normal", text="")
 			self.flags-=1
 			self.flag_tracker.config(text="{:0>3}".format(self.mines-self.flags))
@@ -505,6 +483,6 @@ class App:
 
 root = Tk()
 root.title("Minesweeper")
-# root.minsize(width=400, height=400)
 app = App(root)
+
 root.mainloop()
